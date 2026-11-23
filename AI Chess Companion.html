@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Chess Companion</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<style>
+:root{color-scheme:dark;--bg:#0d1117;--card:#161b22;--bd:#2a313c;--tx:#e6edf3;--mu:#8b949e;--ac:#4ade80;--lt:#ead9b8;--dk:#9b7653;--bs:min(92vw,560px);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--bd)}
+h1{font-size:18px;margin:0}h1 span{color:var(--ac)}
+.wrap{display:grid;gap:16px;padding:16px;max-width:1150px;margin:auto}
+@media(min-width:900px){.wrap{grid-template-columns:auto 1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.card h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu)}
+.bw{display:flex;gap:8px;align-items:stretch}
+#eb{width:26px;border-radius:6px;overflow:hidden;background:#111;position:relative;border:1px solid var(--bd);height:var(--bs)}
+#ebw{position:absolute;left:0;right:0;bottom:0;background:#f2f2f2;height:50%;transition:height .25s}
+#evl{position:absolute;left:0;right:0;font-size:10px;font-weight:700;text-align:center;top:2px;color:#ddd}
+#evl.w{top:auto;bottom:2px;color:#222}
+.bd{position:relative;width:var(--bs);height:var(--bs)}
+#board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;height:100%;border-radius:6px;overflow:hidden;user-select:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.sq.lt{background:var(--lt)}.sq.dk{background:var(--dk)}
+.sq.last{box-shadow:inset 0 0 0 100px rgba(255,220,0,.32)}.sq.sel{box-shadow:inset 0 0 0 100px rgba(74,222,128,.5)}.sq.chk{box-shadow:inset 0 0 0 100px rgba(239,68,68,.55)}
+.sq.tg::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,0,0,.28)}
+.pc{font-size:calc(var(--bs)/8*.82);line-height:1;pointer-events:none}
+.pc.w{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 3px #000}.pc.b{color:#161616;text-shadow:0 0 2px #ddd}
+.co{position:absolute;font-size:10px;font-weight:700;opacity:.7;color:#222;pointer-events:none}.co.f{right:3px;bottom:1px}.co.r{left:3px;top:1px}
+#arr{position:absolute;inset:0;pointer-events:none}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
+button,input,textarea{font:inherit;color:var(--tx);background:#21262d;border:1px solid var(--bd);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--ac)}button.p{background:var(--ac);color:#04210f;border-color:var(--ac);font-weight:600}
+textarea,input[type=text],input[type=password],input[type=search]{width:100%}
+label.sw{display:flex;gap:6px;align-items:center;color:var(--mu);cursor:pointer}
+.side{display:grid;gap:12px;align-content:start;min-width:0}
+#coach{min-height:120px;font-size:14px}.sk{height:12px;border-radius:6px;margin:8px 0;background:linear-gradient(90deg,#21262d,#30363d,#21262d);background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;background:#21262d;border:1px solid var(--bd);font-size:12px;margin:2px 4px 2px 0}
+.tag.warn{border-color:#f59e0b;color:#fbbf24}.tag.bad{border-color:#ef4444;color:#f87171}
+#hist{max-height:150px;overflow:auto;font-family:ui-monospace,monospace;font-size:13px;color:var(--mu)}
+.mu{color:var(--mu);font-size:12px}
+#enc{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:9;padding:12px}
+#enc.on{display:flex}#enc .card{width:min(680px,100%);max-height:85vh;overflow:auto}
+.it{border-top:1px solid var(--bd);padding:10px 0}.it b{color:var(--ac)}
+</style></head>
+<body>
+<header><h1>♞ AI Chess <span>Companion</span></h1>
+<div class="row" style="margin:0"><span class="mu" id="eng">Starting engine…</span>
+<button id="bEnc">📚 Tricks &amp; Traps</button></div></header>
+<div class="wrap">
+<div>
+ <div class="bw"><div id="eb"><div id="ebw"></div><div id="evl">0.0</div></div>
+  <div class="bd"><div id="board"></div><svg id="arr" viewBox="0 0 8 8"><defs><marker id="ah" markerWidth="3" markerHeight="3" refX="1.6" refY="1.5" orient="auto"><path d="M0,0 L3,1.5 L0,3z" fill="#22c55e"/></marker></defs><line id="al" stroke="#22c55e" stroke-opacity=".85" stroke-width=".16" marker-end="url(#ah)" display="none"/></svg></div></div>
+ <div class="row"><button id="bU">↩ Undo</button><button id="bF">⇅ Flip</button><button id="bR">⟲ Reset</button><button id="bC">⧉ Copy FEN</button><button id="bA" class="p">⚡ Analyze</button></div>
+ <div class="row"><label class="sw"><input type="checkbox" id="tB" checked> Show Best Move</label><label class="sw"><input type="checkbox" id="tA" checked> Auto-Analyze</label><label class="sw"><input type="checkbox" id="tS" checked> Sound</label></div>
+</div>
+<div class="side">
+ <div class="card"><h3>Best move</h3><div id="bm" style="font-size:22px;font-weight:700">—</div><div class="mu" id="bi">Make a move or press Analyze.</div></div>
+ <div class="card"><h3>🧠 AI Coach (Hinglish)</h3><div id="coach" class="mu">Move karo, coach explain karega.</div></div>
+ <div class="card"><h3>Opening &amp; Trap detector</h3><div id="det"><span class="mu">Starting position</span></div></div>
+ <div class="card"><h3>Moves</h3><div id="hist"></div></div>
+ <div class="card"><h3>Load FEN / PGN</h3><textarea id="io" rows="2" placeholder="Paste FEN or PGN here"></textarea><div class="row"><button id="bL">Load</button><button id="bP">Export PGN</button></div><div class="mu" id="ioM"></div></div>
+ <div class="card"><h3>Gemini API key</h3><input type="password" id="key" placeholder="Paste key (stored only in this browser)"><div class="row"><button id="bK">Save</button><button id="bKx">Clear</button></div><div class="mu" id="km"></div></div>
+</div></div>
+<div id="enc"><div class="card"><div class="row" style="margin:0 0 8px"><input type="search" id="q" placeholder="Search: fork, pin, skewer…" style="flex:1"><button id="bX">✕</button></div><div id="encL"></div></div></div>
+<script>
+const $=s=>document.querySelector(s),game=new Chess();
+let flipped=false,sel=null,best=null,ver=0,sf=null,sfOk=false,searching=false,skip=0,cur=null,ctx=null;
+const U={p:"♟\uFE0E",n:"♞",b:"♝",r:"♜",q:"♛",k:"♚"},V={p:100,n:320,b:330,r:500,q:900,k:0},NM={p:"pawn",n:"knight",b:"bishop",r:"rook",q:"queen",k:"king"};
+const OPN=[["Italian Game","e4 e5 Nf3 Nc6 Bc4"],["Ruy Lopez","e4 e5 Nf3 Nc6 Bb5"],["Scotch Game","e4 e5 Nf3 Nc6 d4"],["Petrov Defense","e4 e5 Nf3 Nf6"],["King’s Pawn Game","e4 e5"],["Sicilian Defense","e4 c5"],["French Defense","e4 e6"],["Caro-Kann Defense","e4 c6"],["Scandinavian Defense","e4 d5"],["Queen’s Gambit","d4 d5 c4"],["London System","d4 d5 Nf3 Nf6 Bf4"],["King’s Indian Defense","d4 Nf6 c4 g6"],["Englund Gambit","d4 e5"],["Queen’s Pawn Game","d4"],["English Opening","c4"],["Réti Opening","Nf3"]];
+const TRP=[["Fool’s Mate","f3 e5 g4 Qh4#",2,"Fastest mate: White weakens the king diagonal and Qh4# ends it."],["Fool’s Mate","g4 e5 f3 Qh4#",2,"Fastest mate: White weakens the king diagonal and Qh4# ends it."],["Scholar’s Mate","e4 e5 Bc4 Nc6 Qh5 Nf6 Qxf7#",5,"Queen + bishop target f7. Defend with ...Nf6 or ...g6 in time."],["Fried Liver Attack","e4 e5 Nf3 Nc6 Bc4 Nf6 Ng5 d5 exd5 Nxd5 Nxf7",7,"Knight sacrifice on f7 drags the black king into the open."],["Legal’s Trap","e4 e5 Nf3 d6 Bc4 Bg4 Nc3 g6 Nxe5 Bxd1 Bxf7+ Ke7 Nd5#",7,"Queen sacrifice (Nxe5!) leads to a smothering minor-piece mate."],["Englund Gambit trap","d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Bc3 Bb4 Qd2 Bxc3 Qxc3 Qxa1+",6,"If White grabs b2 too greedily, Black wins the rook on a1."],["Blackburne Shilling","e4 e5 Nf3 Nc6 Bc4 Nd4 Nxe5 Qg5 Nxf7 Qxg2 Rf1 Qxe4+ Be2 Nf3#",6,"Greedy Nxe5?? walks into Qg5 with a mating net."],["Elephant Trap","d4 d5 c4 e6 Nc3 Nf6 Bg5 Nbd7 cxd5 exd5 Nxd5 Nxd5 Bxd8 Bb4+ Qd2 Bxd2+ Kxd2 Kxd8",8,"Winning a pawn with Nxd5? loses the queen to a discovered pin."]];
+const ENC=[["Fork","One piece attacks two or more enemy pieces at once. Knights are the classic forkers because they can’t be blocked.","r3k3/8/8/3N4/8/8/8/4K3 w - - 0 1","Nc7+ forks king and rook."],["Pin","A piece can’t (or shouldn’t) move because a more valuable piece sits behind it. Absolute pin = the king is behind.","4k3/4n3/8/8/8/8/8/4RK2 w - - 0 1","The knight on e7 is pinned to the king; attack it again."],["Skewer","Reverse of a pin: the valuable piece is attacked first, must move, and the piece behind falls.","1q2k3/8/8/8/8/8/8/K6R w - - 0 1","Rh8+ and Rxb8."],["Discovered Attack / Check","Move one piece to unmask an attack from another. Discovered check is deadly as the moved piece can strike freely.","4k3/8/8/8/8/8/4B3/4RK2 w - - 0 1","Any bishop move gives discovered check from the rook."],["Back-Rank Mate","King is trapped behind its own pawns and a rook/queen mates on the first rank. Make luft!","6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1","Ra8#."],["Double Attack","Two separate threats at once (e.g. a queen attacking a piece and threatening mate). Opponent can only parry one."],["Deflection","Force a defender away from its duty, e.g. lure a guard of a key square or piece."],["Decoy","Lure an enemy piece (often the king) onto a bad square with a sacrifice."],["Zwischenzug","An in-between move (often check) played instead of the expected recapture."],["Zugzwang","Any move worsens the position; being forced to move is the problem. Common in endgames."],["Sacrifice","Give material for attack, tempo or a better position. Check forcing lines first."],["Smothered Mate","Knight mates a king boxed in by its own pieces (Legal’s Trap ends this way)."],["X-ray","A piece defends or attacks through an enemy piece along a line."]];
+/* ---------- sound ---------- */
+function snd(t){if(!$("#tS").checked)return;try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=t=="cap"?180:t=="end"?520:320;o.type=t=="cap"?"square":"triangle";g.gain.setValueAtTime(.18,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(t=="cap"?.16:.09));o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+.17)}catch(e){}}
+/* ---------- board ---------- */
+function render(){const B=$("#board");B.innerHTML="";const bd=game.board(),h=game.history({verbose:true}),lm=h[h.length-1];
+ const lg=sel?game.moves({square:sel,verbose:true}).map(m=>m.to):[];let ks=null;
+ if(game.in_check())bd.forEach((row,r)=>row.forEach((p,c)=>{if(p&&p.type=="k"&&p.color==game.turn())ks="abcdefgh"[c]+(8-r)}));
+ for(let i=0;i<64;i++){const r=flipped?7-(i>>3):i>>3,c=flipped?7-(i&7):i&7,sq="abcdefgh"[c]+(8-r),p=bd[r][c],d=document.createElement("div");
+  d.className="sq "+((r+c)%2?"dk":"lt")+(lm&&(lm.from==sq||lm.to==sq)?" last":"")+(sq==sel?" sel":"")+(sq==ks?" chk":"")+(lg.includes(sq)?" tg":"");
+  if(p){const s=document.createElement("span");s.className="pc "+p.color;s.textContent=U[p.type];d.appendChild(s);if(p.color==game.turn()){d.draggable=true;d.ondragstart=e=>{sel=sq;e.dataTransfer.setData("text","m")}}}
+  if(i>>3==7){const f=document.createElement("span");f.className="co f";f.textContent="abcdefgh"[c];d.appendChild(f)}
+  if((i&7)==0){const f=document.createElement("span");f.className="co r";f.textContent=8-r;d.appendChild(f)}
+  d.onclick=()=>clk(sq);d.ondragover=e=>e.preventDefault();d.ondrop=e=>{e.preventDefault();if(sel&&sel!=sq&&tryMove(sel,sq))return;sel=null;render()};B.appendChild(d)}
+ arrow()}
+function clk(sq){if(sel&&sel!=sq&&tryMove(sel,sq))return;const p=game.get(sq);sel=p&&p.color==game.turn()&&sq!=sel?sq:null;render()}
+function tryMove(f,t){const m=game.moves({square:f,verbose:true}).find(x=>x.to==t);if(!m)return false;game.move({from:f,to:t,promotion:"q"});sel=null;snd(game.game_over()?"end":m.captured?"cap":"mv");after();return true}
+function after(){best=null;render();hist();detect();analyze(false)}
+function xy(sq){const c="abcdefgh".indexOf(sq[0]),r=8-+sq[1];return[(flipped?7-c:c)+.5,(flipped?7-r:r)+.5]}
+function arrow(){const l=$("#al");if(!best||!$("#tB").checked){l.setAttribute("display","none");return}
+ const[a,b]=xy(best.slice(0,2)),[c,d]=xy(best.slice(2,4)),dx=c-a,dy=d-b,n=Math.hypot(dx,dy)||1;
+ l.setAttribute("x1",a);l.setAttribute("y1",b);l.setAttribute("x2",c-dx/n*.3);l.setAttribute("y2",d-dy/n*.3);l.removeAttribute("display")}
+function hist(){const h=game.history();let s="";h.forEach((m,i)=>{s+=(i%2?"":"<b>"+(i/2+1)+".</b> ")+m+" "});$("#hist").innerHTML=s||"No moves yet";$("#hist").scrollTop=1e5}
+/* ---------- openings & traps ---------- */
+function detect(){const h=game.history().map(x=>x.replace(/[+#]/g,"")),hs=h.join(" "),full=game.history().join(" ");let o=null,t="";
+ for(const[n,s]of OPN){const w=s.split(" ");if(h.length>=w.length&&w.every((x,i)=>h[i]==x)&&(!o||w.length>o[1]))o=[n,w.length]}
+ for(const[n,s,min,d]of TRP){const w=s.split(" ").map(x=>x.replace(/[+#]/g,"")),sw=s.split(" ");
+  if(h.length>=min&&h.length<=w.length&&h.every((x,i)=>w[i]==x)){const done=h.length==w.length;t+=`<div><span class="tag ${done?"bad":"warn"}">${done?"💥 Trap sprung":"⚠ Trap in progress"}: ${n}</span><div class="mu">${d}</div></div>`}}
+ $("#det").innerHTML=(o?`<span class="tag">📖 ${o[0]}</span>`:'<span class="mu">'+(h.length?"No known opening":"Starting position")+"</span>")+t}
+/* ---------- engines ---------- */
+function setEng(s){$("#eng").textContent=s}
+try{const b=new Blob(['importScripts("https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js")'],{type:"application/javascript"});
+ sf=new Worker(URL.createObjectURL(b));sf.onmessage=e=>onSF(String(e.data));sf.onerror=()=>noSF();sf.postMessage("uci");setTimeout(()=>{if(!sfOk)noSF()},4000)}catch(e){noSF()}
+function noSF(){if(sfOk)return;sf=null;setEng("Built-in engine (Stockfish unavailable here)");analyze(false)}
+function onSF(l){if(l=="uciok"){sfOk=true;sf.postMessage("setoption name Hash value 32");sf.postMessage("isready");setEng("Stockfish (Web Worker)");analyze(false);return}
+ if(!cur)return;if(l.startsWith("info")&&l.includes(" score ")){const m=l.match(/score (cp|mate) (-?\d+)/),d=l.match(/depth (\d+)/),p=l.match(/ pv (\S+)/);if(m&&!skip){const v=+m[2]*(cur.turn=="w"?1:-1);showEval(m[1]=="cp"?v:null,m[1]=="mate"?v:null,d&&d[1]);if(p)cur.pv=p[1]}return}
+ const b=l.match(/^bestmove (\S+)/);if(b){if(skip>0){skip--;return}searching=false;fin(cur.v,b[1],cur)}}
+function mini(fen){const g=new Chess(fen),sgn=g.turn()=="w"?1:-1;
+ const ev=()=>{let s=0;for(const r of g.board())for(const p of r)if(p)s+=(p.color=="w"?1:-1)*V[p.type];return s*sgn};
+ const nm=(d,a,b)=>{if(!d)return ev();const ms=g.moves({verbose:true});if(!ms.length)return g.in_check()?-99999-d:0;
+  ms.sort((x,y)=>(y.captured?V[y.captured]:0)-(x.captured?V[x.captured]:0));let m=-1e9;
+  for(const x of ms){g.move(x);const v=-nm(d-1,-b,-a);g.undo();if(v>m)m=v;if(v>a)a=v;if(a>=b)break}return m};
+ let bm=null,bv=-1e9;for(const x of g.moves({verbose:true})){g.move(x);const v=-nm(2,-1e9,1e9);g.undo();if(v>bv){bv=v;bm=x}}
+ return{u:bm.from+bm.to+(bm.promotion||""),cp:bv*sgn}}
+function analyze(force){const my=++ver;best=null;arrow();
+ if(game.game_over()){const r=game.in_checkmate()?(game.turn()=="w"?"Black":"White")+" wins by checkmate":"Draw";setEval(0,null);$("#bm").textContent="Game over";$("#bi").textContent=r;$("#coach").innerHTML=r+". GG! 🎉";return}
+ if(!force&&!$("#tA").checked){$("#bi").textContent="Auto-Analyze off — press Analyze.";return}
+ const fen=game.fen();cur={v:my,fen,turn:game.turn(),pv:null};$("#bm").textContent="…";$("#bi").textContent="Analyzing…";
+ if(sfOk){if(searching){sf.postMessage("stop");skip++}searching=true;sf.postMessage("position fen "+fen);sf.postMessage("go movetime 700")}
+ else if(!sf||sf===null){setTimeout(()=>{if(my!=ver)return;const r=mini(fen);if(my!=ver)return;showEval(r.cp,null,3);fin(my,r.u,cur)},20)}}
+function setEval(cp,mate){let pct,t;if(mate!=null){pct=mate>0?100:0;t=(mate>0?"":"-")+"M"+Math.abs(mate)}else{pct=100/(1+Math.exp(-cp/400));t=(cp>0?"+":"")+(cp/100).toFixed(1)}
+ $("#ebw").style.height=pct+"%";const e=$("#evl");e.textContent=t;e.className=pct>=50?"w":"";}
+function showEval(cp,mate,d){cur.cp=cp;cur.mate=mate;cur.depth=d;setEval(cp,mate);$("#bi").textContent="Depth "+(d||"?")+" · eval "+$("#evl").textContent}
+function fin(my,u,c){if(my!=ver)return;best=u;const g=new Chess(c.fen),m=g.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});if(!m)return;
+ $("#bm").textContent=m.san;arrow();coach(my,c,m)}
+/* ---------- coach ---------- */
+function esc(s){return s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))}
+function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>")}
+function local(c,m){const g=new Chess(c.fen),me=c.turn=="w"?"White":"Black",x=new Chess(c.fen);x.move(m);
+ let tr=[];if(m.captured)tr.push("**Capture**: "+NM[m.captured]+" free material mil raha hai.");if(m.san.includes("#"))tr.push("**Checkmate**!");else if(m.san.includes("+"))tr.push("**Check** de kar opponent ko force kar raha hai.");if(m.flags.includes("k")||m.flags.includes("q"))tr.push("**Castling**: king safe + rook active.");if(m.promotion)tr.push("**Promotion**: pawn queen ban raha hai.");
+ const p=x.fen().split(" ");p[1]=c.turn;p[3]="-";const y=new Chess(p.join(" "));let tg=[];try{tg=y.moves({square:m.to,verbose:true}).filter(z=>z.captured&&V[z.captured]>=300).map(z=>NM[z.captured])}catch(e){}
+ if(tg.length>=2)tr.push("**Fork**: "+NM[m.piece]+" ek saath "+tg.slice(0,3).join(" aur ")+" ko attack karega.");
+ const opp=x.moves({verbose:true}).filter(z=>z.captured&&V[z.captured]>=300).map(z=>NM[z.piece]+"x"+NM[z.captured]);
+ const ev=c.mate!=null?"Mate in "+Math.abs(c.mate):(c.cp/100).toFixed(1);
+ return `**Best Move Logic**\n${me} ke liye ${m.san} sabse strong hai (eval ${ev}). ${NM[m.piece]} ko ${m.to} par laane se position aur active hoti hai.\n\n**Tricks &amp; Tactics**\n${tr.length?tr.join("\n"):"Koi seedha trick nahi — yeh ek solid positional move hai (centre control / development)."}\n\n**Opponent Threat / Plan**\n${opp.length?"Dhyaan rakho: opponent ke paas "+opp.slice(0,3).join(", ")+" jaisi captures ho sakti hain.":"Opponent ke paas turant koi bada threat nahi dikh raha; apna plan chalate raho."}`.replace("&amp;","&")}
+function coach(my,c,m){const lm=game.history().slice(-1)[0]||"—",key=getKey();$("#coach").innerHTML=md(local(c,m))+(key?'<div class="sk"></div><div class="mu">Gemini soch raha hai… (aap move karte raho)</div>':'<div class="mu">Local mode — Gemini key add karo for deeper AI explanation.</div>');
+ if(!key)return;const ev=c.mate!=null?"mate in "+c.mate+" (White perspective)":c.cp+" centipawns (White perspective)";
+ const pr=`You are a friendly chess coach. Reply in natural Hinglish (Hindi in Roman script mixed with English chess terms). Position FEN: ${c.fen}. Side to move: ${c.turn=="w"?"White":"Black"}. Last move played: ${lm}. Stockfish eval: ${ev}. Stockfish best move: ${m.san}. Use EXACTLY these three bold headings, 2-3 short lines each:\n**Best Move Logic** - why this move is strongest now.\n**Tricks & Tactics** - any pattern involved (fork, pin, skewer, discovered attack, sacrifice, zugzwang, back-rank mate etc.), or say none.\n**Opponent Threat / Plan** - what the opponent wants next and how to counter.`;
+ const t=setTimeout(()=>{},0);fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:pr}]}]})})
+ .then(r=>r.json()).then(j=>{if(my!=ver)return;const tx=j.candidates&&j.candidates[0].content.parts.map(p=>p.text).join("");if(!tx)throw new Error(j.error?j.error.message:"empty");$("#coach").innerHTML=md(tx)+'<div class="mu">— Gemini</div>'})
+ .catch(e=>{if(my!=ver)return;$("#coach").innerHTML=md(local(c,m))+'<div class="mu">Gemini unavailable ('+esc(String(e.message||e)).slice(0,80)+") — local mode.</div>"})}
+function getKey(){try{return localStorage.getItem("gk")||""}catch(e){return""}}
+/* ---------- controls ---------- */
+$("#bU").onclick=()=>{game.undo();sel=null;after()};$("#bF").onclick=()=>{flipped=!flipped;render()};
+$("#bR").onclick=()=>{game.reset();sel=null;after()};
+$("#bC").onclick=()=>{const f=game.fen();(navigator.clipboard?navigator.clipboard.writeText(f):Promise.reject()).catch(()=>{$("#io").value=f;$("#io").select();try{document.execCommand("copy")}catch(e){}});$("#ioM").textContent="FEN copied: "+f};
+$("#bA").onclick=()=>analyze(true);$("#tB").onchange=arrow;$("#tA").onchange=()=>{if($("#tA").checked)analyze(false)};
+$("#bL").onclick=()=>{const v=$("#io").value.trim();if(!v)return;let ok=false;try{ok=game.load(v)}catch(e){}
+ if(!ok){try{game.reset();ok=game.load_pgn(v)}catch(e){}}$("#ioM").textContent=ok?"Loaded ✓":"Invalid FEN/PGN";if(ok){sel=null;after()}else render()};
+$("#bP").onclick=()=>{$("#io").value=game.pgn();$("#ioM").textContent="PGN below"};
+$("#bK").onclick=()=>{try{localStorage.setItem("gk",$("#key").value.trim());$("#km").textContent="Key saved in this browser ✓"}catch(e){$("#km").textContent="Storage unavailable"}$("#key").value=""};
+$("#bKx").onclick=()=>{try{localStorage.removeItem("gk")}catch(e){}$("#km").textContent="Key removed";$("#key").value=""};
+if(getKey())$("#km").textContent="Key saved ✓";
+function encR(){const q=$("#q").value.toLowerCase();$("#encL").innerHTML=ENC.filter(e=>(e[0]+e[1]).toLowerCase().includes(q)).map((e,i)=>`<div class="it"><b>${e[0]}</b><div>${e[1]}</div>${e[2]?`<div class="mu">${e[3]}</div><button data-f="${e[2]}">Load example</button>`:""}</div>`).join("")||'<div class="mu">No match</div>';
+ $("#encL").querySelectorAll("button").forEach(b=>b.onclick=()=>{game.load(b.dataset.f);sel=null;$("#enc").classList.remove("on");after()})}
+$("#bEnc").onclick=()=>{$("#enc").classList.add("on");encR()};$("#bX").onclick=()=>$("#enc").classList.remove("on");$("#q").oninput=encR;
+render();hist();detect();setTimeout(()=>{if(!cur&&(!sf||sfOk===false)&&!sf)analyze(false)},0);
+</script></body></html>
